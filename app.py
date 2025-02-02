@@ -87,6 +87,34 @@ if uploaded_file is not None:
                 st.subheader(f"{model_type} Model Summary")
                 st.write(results)
 
+                # Display additional details and explanation
+                st.subheader("📑 Detailed Model Output Explanation")
+
+                # R-squared (for Linear Regression)
+                if model_type == "Linear Regression":
+                    st.markdown("### R-squared:")
+                    st.write(f"R-squared: {model.rsquared:.4f}")
+                    st.write(f"R-squared represents the proportion of the variance in the dependent variable that is predictable from the independent variables. A value closer to 1 indicates a better fit.")
+
+                # Log-likelihood and AIC (for Logistic Regression)
+                if model_type == "Logistic Regression":
+                    st.markdown("### Log-Likelihood & AIC:")
+                    st.write(f"Log-Likelihood: {model.llf:.4f}")
+                    st.write(f"AIC (Akaike Information Criterion): {model.aic:.4f}")
+                    st.write(f"Log-Likelihood measures how well the model fits the data. A higher value indicates a better fit. AIC is used for model comparison, with lower values indicating better models.")
+
+                # Coefficients and Significance
+                st.markdown("### Coefficients and Significance:")
+                st.write(f"Coefficients represent the change in the target variable for a one-unit change in the corresponding feature. If the p-value is less than 0.05, the variable is considered statistically significant.")
+
+                # Confidence Interval
+                st.markdown("### Confidence Intervals:")
+                st.write(f"The 95% confidence intervals for the coefficients provide a range in which the true coefficient is likely to fall. A wider interval suggests more uncertainty in the estimate.")
+
+                # P-values
+                st.markdown("### P-values:")
+                st.write(f"P-values are used to determine the statistical significance of each variable. A p-value below 0.05 generally indicates that the feature has a significant effect on the target variable.")
+
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
         st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
