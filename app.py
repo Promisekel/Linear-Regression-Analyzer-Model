@@ -6,6 +6,7 @@ import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 # Streamlit app configuration
 st.set_page_config(page_title="Diabetes Dashboard", layout="wide")
