@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
-import joblib
 import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -66,43 +65,22 @@ if uploaded_file is not None:
         if st.sidebar.button("Train Model"):
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            if model_type == "Linear Regression":
-                if y.dtypes not in ["int64", "float64"]:
-                    st.warning("The target variable must be continuous for Linear Regression.")
+            # Check if target variable is suitable for the selected model
+            if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
+                st.warning("Target variable must be continuous for Linear Regression.")
+            elif model_type == "Logistic Regression" and len(y.unique()) != 2:
+                st.warning("Target variable must be binary for Logistic Regression.")
+            else:
+                # Using statsmodels for detailed output
+                X_train_sm = sm.add_constant(X_train)  # adding a constant
+
+                if model_type == "Linear Regression":
+                    model = sm.OLS(y_train, X_train_sm).fit()
                 else:
-                    model = LinearRegression()
-                    model.fit(X_train, y_train)
-                    predictions = model.predict(X_test)
+                    model = sm.Logit(y_train, X_train_sm).fit()
 
-                    st.subheader("Linear Regression Results")
-                    st.write(f"R-squared: {r2_score(y_test, predictions):.2f}")
-                    st.write(f"MSE: {mean_squared_error(y_test, predictions):.2f}")
-
-                    # Full regression output
-                    X_sm = sm.add_constant(X)
-                    ols_model = sm.OLS(y, X_sm).fit()
-                    st.text(ols_model.summary())
-
-                    fig = px.scatter(x=y_test, y=predictions, labels={'x': 'Actual', 'y': 'Predicted'})
-                    st.plotly_chart(fig, use_container_width=True)
-
-            elif model_type == "Logistic Regression":
-                if len(y.unique()) > 2:
-                    st.warning("The target variable must be binary for Logistic Regression.")
-                else:
-                    model = LogisticRegression(max_iter=200)
-                    model.fit(X_train, y_train)
-                    predictions = model.predict(X_test)
-
-                    st.subheader("Logistic Regression Results")
-                    st.write(f"Accuracy: {accuracy_score(y_test, predictions):.2f}")
-                    st.text("Classification Report:")
-                    st.text(classification_report(y_test, predictions))
-
-                    # Full logistic regression output
-                    X_sm = sm.add_constant(X)
-                    logit_model = sm.Logit(y, X_sm).fit()
-                    st.text(logit_model.summary())
+                st.subheader(f"{model_type} Model Summary")
+                st.text(model.summary())
 
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
