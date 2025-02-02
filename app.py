@@ -115,6 +115,25 @@ if uploaded_file is not None:
                 st.markdown("### P-values:")
                 st.write(f"P-values are used to determine the statistical significance of each variable. A p-value below 0.05 generally indicates that the feature has a significant effect on the target variable.")
 
+                # Displaying residual statistics for Linear Regression
+                if model_type == "Linear Regression":
+                    st.markdown("### Residual Statistics:")
+                    residuals = model.resid
+                    residual_stats = {
+                        "Min": residuals.min(),
+                        "1Q": residuals.quantile(0.25),
+                        "Median": residuals.median(),
+                        "3Q": residuals.quantile(0.75),
+                        "Max": residuals.max()
+                    }
+                    st.write(pd.DataFrame(residual_stats, index=["Residuals"]))
+
+                    # Additional model fit statistics
+                    st.markdown("### Model Fit Statistics:")
+                    st.write(f"Residual standard error: {model.bse[0]:.2f} on {model.df_resid} degrees of freedom")
+                    st.write(f"Multiple R-squared: {model.rsquared:.4f}, Adjusted R-squared: {model.rsquared_adj:.4f}")
+                    st.write(f"F-statistic: {model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF, p-value: {model.f_pvalue:.4e}")
+
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
         st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
