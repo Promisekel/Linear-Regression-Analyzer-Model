@@ -79,8 +79,13 @@ if uploaded_file is not None:
                 else:
                     model = sm.Logit(y_train, X_train_sm).fit()
 
+                # Extracting the results and formatting them
+                results = model.summary2().tables[1]  # Extract the second table, which contains coefficients, p-values, etc.
+                results = results[['Coef.', 'Std.Err.', 't', 'P>|t|', '[0.025', '0.975]']]
+
+                # Display model output as a table
                 st.subheader(f"{model_type} Model Summary")
-                st.text(model.summary())
+                st.write(results)
 
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
