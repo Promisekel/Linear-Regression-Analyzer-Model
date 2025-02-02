@@ -1,4 +1,4 @@
-=import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -186,3 +186,4 @@ if uploaded_file is not None:
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
         st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
+        
