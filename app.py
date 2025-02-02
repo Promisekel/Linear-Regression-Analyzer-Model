@@ -1,4 +1,4 @@
-import streamlit as st
+=import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -146,9 +146,19 @@ if uploaded_file is not None:
                     ax[0].set_ylabel('Residuals')
                     ax[0].set_title('Residuals vs Fitted Values')
 
+                    st.write("""
+                    **Residuals vs Fitted Values Plot**:  
+                    This plot shows the residuals (errors) versus the fitted values (predictions) of the model. If the model fits well, the residuals should be randomly scattered around the horizontal line at zero, with no discernible pattern. A pattern in the residuals may suggest that the model is not capturing some underlying trends in the data.
+                    """)
+
                     # Histogram of residuals
                     sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
                     ax[1].set_title('Histogram of Residuals')
+
+                    st.write("""
+                    **Histogram of Residuals**:  
+                    The histogram shows the distribution of the residuals. A normally distributed set of residuals is ideal for linear regression. If the distribution is skewed or exhibits patterns, it might indicate that the assumptions of linear regression are violated.
+                    """)
 
                     st.pyplot(fig)
 
@@ -156,12 +166,22 @@ if uploaded_file is not None:
                     fig = sm.qqplot(residuals, line='45')
                     st.pyplot(fig)
 
+                    st.write("""
+                    **Q-Q Plot (Quantile-Quantile Plot)**:  
+                    The Q-Q plot compares the quantiles of the residuals to those of a normal distribution. If the residuals are normally distributed, the points should lie along the 45-degree reference line. Deviations from the line may suggest that the residuals are not normally distributed, which could affect model assumptions.
+                    """)
+
                     # Feature importance plot
                     coefficients = model.params[1:]  # Skip constant
                     feature_names = X_train.columns
                     fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficient'}, color=coefficients)
                     fig.update_layout(title="Feature Importance (Coefficients)", xaxis_title="Features", yaxis_title="Coefficient Value")
                     st.plotly_chart(fig)
+
+                    st.write("""
+                    **Feature Importance Plot**:  
+                    This bar chart shows the coefficients of the model, which represent the importance of each feature in predicting the target variable. Larger coefficients (in absolute value) indicate a greater influence on the target variable. Positive coefficients suggest a direct relationship, while negative coefficients suggest an inverse relationship.
+                    """)
 
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
