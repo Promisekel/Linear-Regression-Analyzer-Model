@@ -22,29 +22,20 @@ if uploaded_file is not None:
 
     # Sidebar: Data Manipulation
     st.sidebar.header("🔍 Data Manipulation")
-    if st.sidebar.checkbox("Show and Edit Raw Data"):
-        st.subheader("📝 Editable Dataset")
-
-        # Editable data frame
-        edited_df = st.data_editor(df, num_rows="dynamic")
-
-        # Option to download the edited dataset
-        csv = edited_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Download Edited CSV",
-            data=csv,
-            file_name='edited_data.csv',
-            mime='text/csv'
-        )
+    if st.sidebar.checkbox("Show Raw Data"):
+        edited_df = st.data_editor(df)
+        st.write(edited_df)
+    else:
+        edited_df = df
 
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
-    target_var = st.sidebar.selectbox("Select Target Variable", df.columns)
-    feature_vars = st.sidebar.multiselect("Select Feature Variables", df.columns.difference([target_var]))
+    target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
+    feature_vars = st.sidebar.multiselect("Select Feature Variables", edited_df.columns.difference([target_var]))
 
     if feature_vars and target_var:
-        X = df[feature_vars]
-        y = df[target_var]
+        X = edited_df[feature_vars]
+        y = edited_df[target_var]
 
         # Data Visualization
         st.header("📈 Data Visualization")
@@ -52,28 +43,24 @@ if uploaded_file is not None:
 
         if chart_type == "Histogram":
             feature = st.selectbox("Select Feature", feature_vars)
-            fig = px.histogram(df, x=feature, color=target_var, barmode="overlay")
+            fig = px.histogram(edited_df, x=feature, color=target_var, barmode="overlay")
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown("**Explanation:** This histogram shows the distribution of the selected feature, helping identify skewness, outliers, and frequency patterns.")
 
         elif chart_type == "Boxplot":
             feature = st.selectbox("Select Feature", feature_vars)
-            fig = px.box(df, x=target_var, y=feature, color=target_var)
+            fig = px.box(edited_df, x=target_var, y=feature, color=target_var)
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown("**Explanation:** The boxplot visualizes the spread and central tendency of data, highlighting outliers and comparing distributions across categories.")
 
         elif chart_type == "Scatterplot":
             x_var = st.selectbox("X-axis", feature_vars)
             y_var = st.selectbox("Y-axis", feature_vars)
-            fig = px.scatter(df, x=x_var, y=y_var, color=target_var)
+            fig = px.scatter(edited_df, x=x_var, y=y_var, color=target_var)
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown("**Explanation:** The scatterplot reveals relationships between two variables, helping identify trends, clusters, and potential correlations.")
 
         elif chart_type == "Correlation Heatmap":
-            corr = df.corr()
+            corr = edited_df.corr()
             fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown("**Explanation:** The correlation heatmap displays pairwise correlations between variables. Darker shades indicate stronger relationships.")
 
         # Model Selection
         st.sidebar.header("🤖 Model Selection")
@@ -97,56 +84,55 @@ if uploaded_file is not None:
                     model = sm.Logit(y_train, X_train_sm).fit()
 
                 # Extracting the results and formatting them
-                results = model.summary2().tables[1]
-                results = results[['Coef.', 'Std.Err.', 't', 'P>|t|', '[0.025', '0.975]']]
+                results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
 
                 # Display model output as a table
                 st.subheader(f"{model_type} Model Summary")
                 st.write(results)
 
-                # Display residual statistics for Linear Regression
+                # Model Parameters Table
+                st.subheader("📋 Model Parameters")
                 if model_type == "Linear Regression":
-                    st.markdown("### Residual Statistics")
-                    residuals = model.resid
-                    residual_stats = {
-                        "Min": residuals.min(),
-                        "1Q": residuals.quantile(0.25),
-                        "Median": residuals.median(),
-                        "3Q": residuals.quantile(0.75),
-                        "Max": residuals.max()
+                    param_data = {
+                        "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
+                        "Multiple R-squared": [f"{model.rsquared:.4f}"],
+                        "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
+                        "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
+                        "p-value": [f"{model.f_pvalue:.4e}"]
                     }
-                    st.write(pd.DataFrame(residual_stats, index=["Residuals"]))
+                    st.table(pd.DataFrame(param_data))
 
-                    # Visualizations
-                    st.markdown("### Visualizations")
-                    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+                # Visualizations
+                st.subheader("📊 Model Visualizations")
+                fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
-                    # Residuals plot
-                    ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
-                    ax[0].axhline(y=0, color='red', linestyle='--')
-                    ax[0].set_xlabel('Fitted Values')
-                    ax[0].set_ylabel('Residuals')
-                    ax[0].set_title('Residuals vs Fitted Values')
-                    st.pyplot(fig)
-                    st.markdown("**Explanation:** This plot checks model assumptions by showing if residuals are randomly dispersed around zero.")
+                # Residuals plot
+                residuals = model.resid
+                ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
+                ax[0].axhline(y=0, color='red', linestyle='--')
+                ax[0].set_xlabel('Fitted Values')
+                ax[0].set_ylabel('Residuals')
+                ax[0].set_title('Residuals vs Fitted Values')
 
-                    # Histogram of residuals
-                    fig, ax = plt.subplots()
-                    sns.histplot(residuals, kde=True, color='purple', ax=ax)
-                    ax.set_title('Histogram of Residuals')
-                    st.pyplot(fig)
-                    st.markdown("**Explanation:** This histogram helps verify if residuals are normally distributed, which is key for model accuracy.")
+                # Histogram of residuals
+                sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
+                ax[1].set_title('Histogram of Residuals')
 
-                    # Q-Q plot
-                    fig = sm.qqplot(residuals, line='45')
-                    st.pyplot(fig)
-                    st.markdown("**Explanation:** The Q-Q plot compares the distribution of residuals to a normal distribution. Points close to the line indicate normality.")
+                st.pyplot(fig)
 
-                    # Feature importance plot
-                    coefficients = model.params[1:]
-                    feature_names = X_train.columns
-                    fig, ax = plt.subplots()
-                    sns.barplot(x=coefficients.values, y=feature_names, palette='coolwarm', ax=ax)
-                    ax.set_title('Feature Importance')
-                    st.pyplot(fig)
-                    st.markdown("**Explanation:** This bar plot shows the relative importance of each feature in predicting the target variable.")
+                # Explanations
+                st.markdown("**Explanation:**")
+                st.write("- **Residuals vs Fitted Values:** Helps to identify non-linearity, unequal error variances, and outliers.")
+                st.write("- **Histogram of Residuals:** Shows the distribution of residuals to check for normality.")
+
+                # Q-Q plot
+                fig = sm.qqplot(residuals, line='45')
+                st.pyplot(fig)
+                st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
+
+                # Feature importance plot
+                coefficients = model.params[1:]  # Skip constant
+                feature_names = X_train.columns
+                fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
+                st.plotly_chart(fig)
+                st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
