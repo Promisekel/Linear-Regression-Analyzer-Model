@@ -162,7 +162,7 @@ if uploaded_file is not None:
                     fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficient'}, color=coefficients)
                     fig.update_layout(title="Feature Importance (Coefficients)", xaxis_title="Features", yaxis_title="Coefficient Value")
                     st.plotly_chart(fig)
-                
+
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
         st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
