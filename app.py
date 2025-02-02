@@ -20,6 +20,19 @@ if uploaded_file is not None:
     # Read the uploaded dataset
     df = pd.read_csv(uploaded_file)
 
+    # Handling missing data
+    st.sidebar.header("🧹 Handle Missing Data")
+    missing_option = st.sidebar.selectbox("Choose Missing Data Handling Method", ["Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
+
+    if missing_option == "Drop Rows":
+        df = df.dropna()
+    elif missing_option == "Fill with Mean":
+        df = df.fillna(df.mean(numeric_only=True))
+    elif missing_option == "Fill with Median":
+        df = df.fillna(df.median(numeric_only=True))
+    elif missing_option == "Fill with Mode":
+        df = df.apply(lambda col: col.fillna(col.mode()[0]) if col.isnull().any() else col)
+
     # Sidebar: Data Manipulation
     st.sidebar.header("🔍 Data Manipulation")
     if st.sidebar.checkbox("Show Raw Data"):
