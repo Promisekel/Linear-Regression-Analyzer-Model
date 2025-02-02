@@ -78,10 +78,10 @@ if uploaded_file is not None:
                     st.write(f"R-squared: {r2_score(y_test, predictions):.2f}")
                     st.write(f"MSE: {mean_squared_error(y_test, predictions):.2f}")
 
-                    # Full regression output in model form
+                    # Full regression output
                     X_sm = sm.add_constant(X)
                     ols_model = sm.OLS(y, X_sm).fit()
-                    st.markdown(f"```\n{ols_model.summary()}\n```")
+                    st.text(ols_model.summary())
 
                     fig = px.scatter(x=y_test, y=predictions, labels={'x': 'Actual', 'y': 'Predicted'})
                     st.plotly_chart(fig, use_container_width=True)
@@ -99,10 +99,10 @@ if uploaded_file is not None:
                     st.text("Classification Report:")
                     st.text(classification_report(y_test, predictions))
 
-                    # Full logistic regression output in model form
+                    # Full logistic regression output
                     X_sm = sm.add_constant(X)
                     logit_model = sm.Logit(y, X_sm).fit()
-                    st.markdown(f"```\n{logit_model.summary()}\n```")
+                    st.text(logit_model.summary())
 
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
