@@ -22,8 +22,20 @@ if uploaded_file is not None:
 
     # Sidebar: Data Manipulation
     st.sidebar.header("🔍 Data Manipulation")
-    if st.sidebar.checkbox("Show Raw Data"):
-        st.write(df)
+    if st.sidebar.checkbox("Show and Edit Raw Data"):
+        st.subheader("📝 Editable Dataset")
+
+        # Editable data frame
+        edited_df = st.data_editor(df, num_rows="dynamic")
+
+        # Option to download the edited dataset
+        csv = edited_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Edited CSV",
+            data=csv,
+            file_name='edited_data.csv',
+            mime='text/csv'
+        )
 
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
@@ -42,22 +54,26 @@ if uploaded_file is not None:
             feature = st.selectbox("Select Feature", feature_vars)
             fig = px.histogram(df, x=feature, color=target_var, barmode="overlay")
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**Explanation:** This histogram shows the distribution of the selected feature, helping identify skewness, outliers, and frequency patterns.")
 
         elif chart_type == "Boxplot":
             feature = st.selectbox("Select Feature", feature_vars)
             fig = px.box(df, x=target_var, y=feature, color=target_var)
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**Explanation:** The boxplot visualizes the spread and central tendency of data, highlighting outliers and comparing distributions across categories.")
 
         elif chart_type == "Scatterplot":
             x_var = st.selectbox("X-axis", feature_vars)
             y_var = st.selectbox("Y-axis", feature_vars)
             fig = px.scatter(df, x=x_var, y=y_var, color=target_var)
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**Explanation:** The scatterplot reveals relationships between two variables, helping identify trends, clusters, and potential correlations.")
 
         elif chart_type == "Correlation Heatmap":
             corr = df.corr()
             fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**Explanation:** The correlation heatmap displays pairwise correlations between variables. Darker shades indicate stronger relationships.")
 
         # Model Selection
         st.sidebar.header("🤖 Model Selection")
@@ -81,44 +97,16 @@ if uploaded_file is not None:
                     model = sm.Logit(y_train, X_train_sm).fit()
 
                 # Extracting the results and formatting them
-                results = model.summary2().tables[1]  # Extract the second table, which contains coefficients, p-values, etc.
+                results = model.summary2().tables[1]
                 results = results[['Coef.', 'Std.Err.', 't', 'P>|t|', '[0.025', '0.975]']]
 
                 # Display model output as a table
                 st.subheader(f"{model_type} Model Summary")
                 st.write(results)
 
-                # Display additional details and explanation
-                st.subheader("📑 Detailed Model Output Explanation")
-
-                # R-squared (for Linear Regression)
+                # Display residual statistics for Linear Regression
                 if model_type == "Linear Regression":
-                    st.markdown("### R-squared:")
-                    st.write(f"R-squared: {model.rsquared:.4f}")
-                    st.write(f"R-squared represents the proportion of the variance in the dependent variable that is predictable from the independent variables. A value closer to 1 indicates a better fit.")
-
-                # Log-likelihood and AIC (for Logistic Regression)
-                if model_type == "Logistic Regression":
-                    st.markdown("### Log-Likelihood & AIC:")
-                    st.write(f"Log-Likelihood: {model.llf:.4f}")
-                    st.write(f"AIC (Akaike Information Criterion): {model.aic:.4f}")
-                    st.write(f"Log-Likelihood measures how well the model fits the data. A higher value indicates a better fit. AIC is used for model comparison, with lower values indicating better models.")
-
-                # Coefficients and Significance
-                st.markdown("### Coefficients and Significance:")
-                st.write(f"Coefficients represent the change in the target variable for a one-unit change in the corresponding feature. If the p-value is less than 0.05, the variable is considered statistically significant.")
-
-                # Confidence Interval
-                st.markdown("### Confidence Intervals:")
-                st.write(f"The 95% confidence intervals for the coefficients provide a range in which the true coefficient is likely to fall. A wider interval suggests more uncertainty in the estimate.")
-
-                # P-values
-                st.markdown("### P-values:")
-                st.write(f"P-values are used to determine the statistical significance of each variable. A p-value below 0.05 generally indicates that the feature has a significant effect on the target variable.")
-
-                # Displaying residual statistics for Linear Regression
-                if model_type == "Linear Regression":
-                    st.markdown("### Residual Statistics:")
+                    st.markdown("### Residual Statistics")
                     residuals = model.resid
                     residual_stats = {
                         "Min": residuals.min(),
@@ -128,12 +116,6 @@ if uploaded_file is not None:
                         "Max": residuals.max()
                     }
                     st.write(pd.DataFrame(residual_stats, index=["Residuals"]))
-
-                    # Additional model fit statistics
-                    st.markdown("### Model Fit Statistics:")
-                    st.write(f"Residual standard error: {model.bse[0]:.2f} on {model.df_resid} degrees of freedom")
-                    st.write(f"Multiple R-squared: {model.rsquared:.4f}, Adjusted R-squared: {model.rsquared_adj:.4f}")
-                    st.write(f"F-statistic: {model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF, p-value: {model.f_pvalue:.4e}")
 
                     # Visualizations
                     st.markdown("### Visualizations")
@@ -145,45 +127,26 @@ if uploaded_file is not None:
                     ax[0].set_xlabel('Fitted Values')
                     ax[0].set_ylabel('Residuals')
                     ax[0].set_title('Residuals vs Fitted Values')
-
-                    st.write("""
-                    **Residuals vs Fitted Values Plot**:  
-                    This plot shows the residuals (errors) versus the fitted values (predictions) of the model. If the model fits well, the residuals should be randomly scattered around the horizontal line at zero, with no discernible pattern. A pattern in the residuals may suggest that the model is not capturing some underlying trends in the data.
-                    """)
+                    st.pyplot(fig)
+                    st.markdown("**Explanation:** This plot checks model assumptions by showing if residuals are randomly dispersed around zero.")
 
                     # Histogram of residuals
-                    sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
-                    ax[1].set_title('Histogram of Residuals')
-
-                    st.write("""
-                    **Histogram of Residuals**:  
-                    The histogram shows the distribution of the residuals. A normally distributed set of residuals is ideal for linear regression. If the distribution is skewed or exhibits patterns, it might indicate that the assumptions of linear regression are violated.
-                    """)
-
+                    fig, ax = plt.subplots()
+                    sns.histplot(residuals, kde=True, color='purple', ax=ax)
+                    ax.set_title('Histogram of Residuals')
                     st.pyplot(fig)
+                    st.markdown("**Explanation:** This histogram helps verify if residuals are normally distributed, which is key for model accuracy.")
 
                     # Q-Q plot
                     fig = sm.qqplot(residuals, line='45')
                     st.pyplot(fig)
-
-                    st.write("""
-                    **Q-Q Plot (Quantile-Quantile Plot)**:  
-                    The Q-Q plot compares the quantiles of the residuals to those of a normal distribution. If the residuals are normally distributed, the points should lie along the 45-degree reference line. Deviations from the line may suggest that the residuals are not normally distributed, which could affect model assumptions.
-                    """)
+                    st.markdown("**Explanation:** The Q-Q plot compares the distribution of residuals to a normal distribution. Points close to the line indicate normality.")
 
                     # Feature importance plot
-                    coefficients = model.params[1:]  # Skip constant
+                    coefficients = model.params[1:]
                     feature_names = X_train.columns
-                    fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficient'}, color=coefficients)
-                    fig.update_layout(title="Feature Importance (Coefficients)", xaxis_title="Features", yaxis_title="Coefficient Value")
-                    st.plotly_chart(fig)
-
-                    st.write("""
-                    **Feature Importance Plot**:  
-                    This bar chart shows the coefficients of the model, which represent the importance of each feature in predicting the target variable. Larger coefficients (in absolute value) indicate a greater influence on the target variable. Positive coefficients suggest a direct relationship, while negative coefficients suggest an inverse relationship.
-                    """)
-
-        # Download filtered dataset
-        st.sidebar.header("📥 Download Processed Data")
-        st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
-        
+                    fig, ax = plt.subplots()
+                    sns.barplot(x=coefficients.values, y=feature_names, palette='coolwarm', ax=ax)
+                    ax.set_title('Feature Importance')
+                    st.pyplot(fig)
+                    st.markdown("**Explanation:** This bar plot shows the relative importance of each feature in predicting the target variable.")
