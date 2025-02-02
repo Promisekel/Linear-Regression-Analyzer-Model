@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
+import seaborn as sns
 import statsmodels.api as sm
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classification_report
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Streamlit app configuration
 st.set_page_config(page_title="Diabetes Dashboard", layout="wide")
@@ -134,6 +134,34 @@ if uploaded_file is not None:
                     st.write(f"Multiple R-squared: {model.rsquared:.4f}, Adjusted R-squared: {model.rsquared_adj:.4f}")
                     st.write(f"F-statistic: {model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF, p-value: {model.f_pvalue:.4e}")
 
+                    # Visualizations
+                    st.markdown("### Visualizations")
+                    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+
+                    # Residuals plot
+                    ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
+                    ax[0].axhline(y=0, color='red', linestyle='--')
+                    ax[0].set_xlabel('Fitted Values')
+                    ax[0].set_ylabel('Residuals')
+                    ax[0].set_title('Residuals vs Fitted Values')
+
+                    # Histogram of residuals
+                    sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
+                    ax[1].set_title('Histogram of Residuals')
+
+                    st.pyplot(fig)
+
+                    # Q-Q plot
+                    fig = sm.qqplot(residuals, line='45')
+                    st.pyplot(fig)
+
+                    # Feature importance plot
+                    coefficients = model.params[1:]  # Skip constant
+                    feature_names = X_train.columns
+                    fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficient'}, color=coefficients)
+                    fig.update_layout(title="Feature Importance (Coefficients)", xaxis_title="Features", yaxis_title="Coefficient Value")
+                    st.plotly_chart(fig)
+                
         # Download filtered dataset
         st.sidebar.header("📥 Download Processed Data")
         st.sidebar.download_button("Download Data", df.to_csv(index=False), file_name="processed_data.csv")
