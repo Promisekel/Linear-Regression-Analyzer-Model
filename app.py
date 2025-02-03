@@ -168,4 +168,16 @@ if uploaded_file is not None:
 
                 # Residuals plot
                 residuals = model.resid
-                ax[0].scatter(model.fittedvalues, residuals,
+                ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
+                ax[0].axhline(y=0, color='red', linestyle='--')
+                ax[0].set_xlabel('Fitted Values')
+                ax[0].set_ylabel('Residuals')
+                ax[0].set_title('Residuals vs Fitted Values')
+
+                # Histogram of residuals
+                sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
+                ax[1].set_title('Histogram of Residuals')
+
+                st.pyplot(fig)
+
+                # Explanations
