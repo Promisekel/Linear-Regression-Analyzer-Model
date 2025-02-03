@@ -46,53 +46,6 @@ if uploaded_file is not None:
     target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
     feature_vars = st.sidebar.multiselect("Select Feature Variables", edited_df.columns.difference([target_var]))
 
-    # Feature Engineering
-    st.sidebar.header("⚙️ Feature Engineering")
-    if st.sidebar.checkbox("Create Interaction Term"):
-        interaction_feature1 = st.sidebar.selectbox("Select First Feature", edited_df.columns)
-        interaction_feature2 = st.sidebar.selectbox("Select Second Feature", edited_df.columns)
-        interaction_name = f"{interaction_feature1}_x_{interaction_feature2}"
-        edited_df[interaction_name] = edited_df[interaction_feature1] * edited_df[interaction_feature2]
-        st.write(f"Interaction term '{interaction_name}' added to the dataset.")
-
-    # Descriptive and Summary Statistics
-    st.sidebar.header("📋 Descriptive Statistics")
-    selected_var = st.sidebar.selectbox("Select Variable", edited_df.columns)
-    stat_type = st.sidebar.selectbox("Select Statistics Type", ["Summary Statistics", "Descriptive Statistics"])
-
-    if stat_type == "Summary Statistics":
-        st.subheader("Summary Statistics")
-        st.table(edited_df[selected_var].describe().to_frame())
-    elif stat_type == "Descriptive Statistics":
-        st.subheader("Descriptive Statistics")
-        stats_data = {
-            "Mean": edited_df[selected_var].mean(),
-            "Median": edited_df[selected_var].median(),
-            "Mode": edited_df[selected_var].mode()[0] if not edited_df[selected_var].mode().empty else "N/A",
-            "Standard Deviation": edited_df[selected_var].std(),
-            "Variance": edited_df[selected_var].var(),
-            "Min": edited_df[selected_var].min(),
-            "Max": edited_df[selected_var].max()
-        }
-        st.table(pd.DataFrame(stats_data.items(), columns=["Statistic", "Value"]))
-
-    # Section for Generating Descriptive Statistics
-    st.sidebar.header("📊 Generate Descriptive Statistics")
-    descriptive_vars = st.sidebar.multiselect("Select Variables for Descriptive Statistics", edited_df.columns)
-    if st.sidebar.button("Generate Statistics"):
-        descriptive_stats = edited_df[descriptive_vars].describe().T
-        descriptive_stats["Mode"] = [edited_df[var].mode()[0] if not edited_df[var].mode().empty else "N/A" for var in descriptive_vars]
-
-        # Beautify the table
-        st.subheader("Generated Descriptive Statistics")
-        styled_table = descriptive_stats.style.set_table_styles([
-            {'selector': 'th', 'props': [('background-color', '#f4f4f4'), ('font-weight', 'bold')]},
-            {'selector': 'td', 'props': [('padding', '8px'), ('border', '1px solid #ddd')]},
-            {'selector': 'tr:nth-child(even)', 'props': [('background-color', '#f9f9f9')]}
-        ]).format(precision=2)
-
-        st.dataframe(styled_table, use_container_width=True)
-
     if feature_vars and target_var:
         X = edited_df[feature_vars]
         y = edited_df[target_var]
@@ -181,3 +134,18 @@ if uploaded_file is not None:
                 st.pyplot(fig)
 
                 # Explanations
+                st.markdown("**Explanation:**")
+                st.write("- **Residuals vs Fitted Values:** Helps to identify non-linearity, unequal error variances, and outliers.")
+                st.write("- **Histogram of Residuals:** Shows the distribution of residuals to check for normality.")
+
+                # Q-Q plot
+                fig = sm.qqplot(residuals, line='45')
+                st.pyplot(fig)
+                st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
+
+                # Feature importance plot
+                coefficients = model.params[1:]  # Skip constant
+                feature_names = X_train.columns
+                fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
+                st.plotly_chart(fig)
+                st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
