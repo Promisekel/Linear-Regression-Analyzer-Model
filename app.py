@@ -83,6 +83,10 @@ if uploaded_file is not None:
         X = edited_df[feature_vars]
         y = edited_df[target_var]
 
+        # Convert all feature variables to numeric
+        X = X.apply(pd.to_numeric, errors='coerce')
+        y = pd.to_numeric(y, errors='coerce')
+
         # Drop rows with NaN values after manipulation
         X = X.dropna()
         y = y.loc[X.index]  # Align y with X after dropping NaNs
@@ -98,9 +102,6 @@ if uploaded_file is not None:
             if st.sidebar.button("Train Model"):
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-                # Ensure numeric data for OLS model
-                X_train = X_train.apply(pd.to_numeric, errors='coerce')
-                y_train = pd.to_numeric(y_train, errors='coerce')
                 X_train = sm.add_constant(X_train)  # adding a constant
 
                 # Drop any remaining NaNs after conversion
