@@ -78,72 +78,74 @@ if uploaded_file is not None:
         X = edited_df[feature_vars]
         y = edited_df[target_var]
 
-        # Model Selection
-        st.sidebar.header("🤖 Model Selection")
-        model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
+        # Drop rows with NaN values after manipulation
+        X = X.dropna()
+        y = y.loc[X.index]  # Align y with X after dropping NaNs
 
-        if st.sidebar.button("Train Model"):
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Check for empty data after cleaning
+        if X.empty or y.empty:
+            st.error("The dataset is empty after cleaning. Please adjust the data or handling options.")
+        else:
+            # Model Selection
+            st.sidebar.header("🤖 Model Selection")
+            model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
 
-            # Ensure numeric data for OLS model
-            X_train = X_train.apply(pd.to_numeric, errors='coerce')
-            y_train = pd.to_numeric(y_train, errors='coerce')
-            X_train = sm.add_constant(X_train)  # adding a constant
+            if st.sidebar.button("Train Model"):
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Check if target variable is suitable for the selected model
-            if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
-                st.warning("Target variable must be continuous for Linear Regression.")
-            else:
-                try:
-                    # Using statsmodels for detailed output
-                    model = sm.OLS(y_train, X_train, missing='drop').fit()
+                # Ensure numeric data for OLS model
+                X_train = X_train.apply(pd.to_numeric, errors='coerce')
+                y_train = pd.to_numeric(y_train, errors='coerce')
+                X_train = sm.add_constant(X_train)  # adding a constant
 
-                    # Extracting the results and formatting them
-                    results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
+                # Drop any remaining NaNs after conversion
+                valid_idx = X_train.dropna().index.intersection(y_train.dropna().index)
+                X_train = X_train.loc[valid_idx]
+                y_train = y_train.loc[valid_idx]
 
-                    # Display model output as a table
-                    st.subheader(f"{model_type} Model Summary")
-                    st.write(results)
+                if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
+                    st.warning("Target variable must be continuous for Linear Regression.")
+                else:
+                    try:
+                        model = sm.OLS(y_train, X_train, missing='drop').fit()
+                        results = model.summary2().tables[1]
 
-                    # Model Parameters Table
-                    st.subheader("📋 Model Parameters")
-                    param_data = {
-                        "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
-                        "Multiple R-squared": [f"{model.rsquared:.4f}"],
-                        "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
-                        "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
-                        "p-value": [f"{model.f_pvalue:.4e}"]
-                    }
-                    st.table(pd.DataFrame(param_data))
+                        st.subheader(f"{model_type} Model Summary")
+                        st.write(results)
 
-                    # Visualizations
-                    st.subheader("📊 Model Visualizations")
-                    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+                        st.subheader("📋 Model Parameters")
+                        param_data = {
+                            "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
+                            "Multiple R-squared": [f"{model.rsquared:.4f}"],
+                            "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
+                            "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
+                            "p-value": [f"{model.f_pvalue:.4e}"]
+                        }
+                        st.table(pd.DataFrame(param_data))
 
-                    # Residuals plot
-                    residuals = model.resid
-                    ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
-                    ax[0].axhline(y=0, color='red', linestyle='--')
-                    ax[0].set_xlabel('Fitted Values')
-                    ax[0].set_ylabel('Residuals')
-                    ax[0].set_title('Residuals vs Fitted Values')
+                        st.subheader("📊 Model Visualizations")
+                        fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
-                    # Histogram of residuals
-                    sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
-                    ax[1].set_title('Histogram of Residuals')
+                        residuals = model.resid
+                        ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
+                        ax[0].axhline(y=0, color='red', linestyle='--')
+                        ax[0].set_xlabel('Fitted Values')
+                        ax[0].set_ylabel('Residuals')
+                        ax[0].set_title('Residuals vs Fitted Values')
 
-                    st.pyplot(fig)
+                        sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
+                        ax[1].set_title('Histogram of Residuals')
 
-                    # Q-Q plot
-                    fig = sm.qqplot(residuals, line='45')
-                    st.pyplot(fig)
-                    st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
+                        st.pyplot(fig)
 
-                    # Feature importance plot
-                    coefficients = model.params[1:]  # Skip constant
-                    feature_names = X_train.columns[1:]
-                    fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
-                    st.plotly_chart(fig)
-                    st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
-                except Exception as e:
-                    st.error(f"Model training error: {e}")
+                        fig = sm.qqplot(residuals, line='45')
+                        st.pyplot(fig)
+                        st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
+
+                        coefficients = model.params[1:]
+                        feature_names = X_train.columns[1:]
+                        fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
+                        st.plotly_chart(fig)
+                        st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
+                    except Exception as e:
+                        st.error(f"Model training error: {e}")
