@@ -17,7 +17,7 @@ st.sidebar.header("📤 Upload Dataset")
 uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
 # Session state to preserve dummy variables
-if 'edited_df' not in st.session_state:
+if ('edited_df' not in st.session_state):
     st.session_state.edited_df = None
 
 if uploaded_file is not None:
@@ -92,6 +92,11 @@ if uploaded_file is not None:
         X = combined_data[feature_vars]
         y = combined_data[target_var]
 
+        # Explicit conversion to float64 and removal of non-numeric columns
+        X = X.astype('float64', errors='ignore')
+        y = y.astype('float64', errors='ignore')
+        X = X.select_dtypes(include=[np.number])
+
         # Check for empty data after cleaning
         if X.empty or y.empty:
             st.error("The dataset is empty after cleaning. Please adjust the data or handling options.")
@@ -141,22 +146,3 @@ if uploaded_file is not None:
                         ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
                         ax[0].axhline(y=0, color='red', linestyle='--')
                         ax[0].set_xlabel('Fitted Values')
-                        ax[0].set_ylabel('Residuals')
-                        ax[0].set_title('Residuals vs Fitted Values')
-
-                        sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
-                        ax[1].set_title('Histogram of Residuals')
-
-                        st.pyplot(fig)
-
-                        fig = sm.qqplot(residuals, line='45')
-                        st.pyplot(fig)
-                        st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
-
-                        coefficients = model.params[1:]
-                        feature_names = X_train.columns[1:]
-                        fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
-                        st.plotly_chart(fig)
-                        st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
-                    except Exception as e:
-                        st.error(f"Model training error: {e}")
