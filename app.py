@@ -16,30 +16,34 @@ st.title("📊 Diabetes Data Dashboard")
 st.sidebar.header("📤 Upload Dataset")
 uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
+# Session state to preserve dummy variables
+if 'edited_df' not in st.session_state:
+    st.session_state.edited_df = None
+
 if uploaded_file is not None:
     # Read the uploaded dataset
     df = pd.read_csv(uploaded_file)
+    if st.session_state.edited_df is None:
+        st.session_state.edited_df = df
+    edited_df = st.session_state.edited_df
 
     # Handling missing data
     st.sidebar.header("🧹 Handle Missing Data")
     missing_option = st.sidebar.selectbox("Choose Missing Data Handling Method", ["Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
 
     if missing_option == "Drop Rows":
-        df = df.dropna()
+        edited_df = edited_df.dropna()
     elif missing_option == "Fill with Mean":
-        df = df.fillna(df.mean(numeric_only=True))
+        edited_df = edited_df.fillna(edited_df.mean(numeric_only=True))
     elif missing_option == "Fill with Median":
-        df = df.fillna(df.median(numeric_only=True))
+        edited_df = edited_df.fillna(edited_df.median(numeric_only=True))
     elif missing_option == "Fill with Mode":
-        df = df.apply(lambda col: col.fillna(col.mode()[0]) if col.isnull().any() else col)
+        edited_df = edited_df.apply(lambda col: col.fillna(col.mode()[0]) if col.isnull().any() else col)
 
     # Sidebar: Data Manipulation
     st.sidebar.header("🔍 Data Manipulation")
     if st.sidebar.checkbox("Show Raw Data"):
-        edited_df = st.data_editor(df)
         st.write(edited_df)
-    else:
-        edited_df = df
 
     # Data Type Conversion
     st.sidebar.header("🔄 Convert Data Type")
@@ -65,6 +69,7 @@ if uploaded_file is not None:
     if st.sidebar.button("Convert to Dummies"):
         try:
             edited_df = pd.get_dummies(edited_df, columns=categorical_vars, drop_first=True)
+            st.session_state.edited_df = edited_df  # Save to session state
             st.success(f"Successfully converted {', '.join(categorical_vars)} to dummy variables.")
         except Exception as e:
             st.error(f"Error converting to dummies: {e}")
