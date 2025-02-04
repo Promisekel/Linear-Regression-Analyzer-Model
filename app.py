@@ -14,7 +14,7 @@ st.title("📊 Diabetes Data Dashboard")
 
 # File uploader for dataset
 st.sidebar.header("📤 Upload Dataset")
-uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv",type="xlsx")
+uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
 # Session state to preserve dummy variables
 if 'edited_df' not in st.session_state:
