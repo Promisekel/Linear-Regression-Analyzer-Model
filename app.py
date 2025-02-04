@@ -59,6 +59,16 @@ if uploaded_file is not None:
         except Exception as e:
             st.error(f"Error converting data type: {e}")
 
+    # Convert Categorical to Dummies
+    st.sidebar.header("🗂️ Convert Categorical Variables")
+    categorical_vars = st.sidebar.multiselect("Select Categorical Variables to Convert to Dummies", edited_df.select_dtypes(include=['category', 'object']).columns)
+    if st.sidebar.button("Convert to Dummies"):
+        try:
+            edited_df = pd.get_dummies(edited_df, columns=categorical_vars, drop_first=True)
+            st.success(f"Successfully converted {', '.join(categorical_vars)} to dummy variables.")
+        except Exception as e:
+            st.error(f"Error converting to dummies: {e}")
+
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
     target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
@@ -75,59 +85,65 @@ if uploaded_file is not None:
         if st.sidebar.button("Train Model"):
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+            # Ensure numeric data for OLS model
+            X_train = X_train.apply(pd.to_numeric, errors='coerce')
+            y_train = pd.to_numeric(y_train, errors='coerce')
+            X_train = sm.add_constant(X_train)  # adding a constant
+
             # Check if target variable is suitable for the selected model
             if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
                 st.warning("Target variable must be continuous for Linear Regression.")
             else:
-                # Using statsmodels for detailed output
-                X_train_sm = sm.add_constant(X_train)  # adding a constant
+                try:
+                    # Using statsmodels for detailed output
+                    model = sm.OLS(y_train, X_train, missing='drop').fit()
 
-                model = sm.OLS(y_train, X_train_sm).fit()
+                    # Extracting the results and formatting them
+                    results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
 
-                # Extracting the results and formatting them
-                results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
+                    # Display model output as a table
+                    st.subheader(f"{model_type} Model Summary")
+                    st.write(results)
 
-                # Display model output as a table
-                st.subheader(f"{model_type} Model Summary")
-                st.write(results)
+                    # Model Parameters Table
+                    st.subheader("📋 Model Parameters")
+                    param_data = {
+                        "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
+                        "Multiple R-squared": [f"{model.rsquared:.4f}"],
+                        "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
+                        "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
+                        "p-value": [f"{model.f_pvalue:.4e}"]
+                    }
+                    st.table(pd.DataFrame(param_data))
 
-                # Model Parameters Table
-                st.subheader("📋 Model Parameters")
-                param_data = {
-                    "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
-                    "Multiple R-squared": [f"{model.rsquared:.4f}"],
-                    "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
-                    "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
-                    "p-value": [f"{model.f_pvalue:.4e}"]
-                }
-                st.table(pd.DataFrame(param_data))
+                    # Visualizations
+                    st.subheader("📊 Model Visualizations")
+                    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
-                # Visualizations
-                st.subheader("📊 Model Visualizations")
-                fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+                    # Residuals plot
+                    residuals = model.resid
+                    ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
+                    ax[0].axhline(y=0, color='red', linestyle='--')
+                    ax[0].set_xlabel('Fitted Values')
+                    ax[0].set_ylabel('Residuals')
+                    ax[0].set_title('Residuals vs Fitted Values')
 
-                # Residuals plot
-                residuals = model.resid
-                ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
-                ax[0].axhline(y=0, color='red', linestyle='--')
-                ax[0].set_xlabel('Fitted Values')
-                ax[0].set_ylabel('Residuals')
-                ax[0].set_title('Residuals vs Fitted Values')
+                    # Histogram of residuals
+                    sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
+                    ax[1].set_title('Histogram of Residuals')
 
-                # Histogram of residuals
-                sns.histplot(residuals, kde=True, color='purple', ax=ax[1])
-                ax[1].set_title('Histogram of Residuals')
+                    st.pyplot(fig)
 
-                st.pyplot(fig)
+                    # Q-Q plot
+                    fig = sm.qqplot(residuals, line='45')
+                    st.pyplot(fig)
+                    st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
 
-                # Q-Q plot
-                fig = sm.qqplot(residuals, line='45')
-                st.pyplot(fig)
-                st.write("- **Q-Q Plot:** Assesses if residuals follow a normal distribution.")
-
-                # Feature importance plot
-                coefficients = model.params[1:]  # Skip constant
-                feature_names = X_train.columns
-                fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
-                st.plotly_chart(fig)
-                st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
+                    # Feature importance plot
+                    coefficients = model.params[1:]  # Skip constant
+                    feature_names = X_train.columns[1:]
+                    fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
+                    st.plotly_chart(fig)
+                    st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
+                except Exception as e:
+                    st.error(f"Model training error: {e}")
