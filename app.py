@@ -75,45 +75,37 @@ if uploaded_file is not None:
             fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
             st.plotly_chart(fig, use_container_width=True)
 
-        # Model Selection
-        st.sidebar.header("🤖 Model Selection")
-        model_type = st.sidebar.radio("Choose Model", ["Linear Regression", "Logistic Regression"])
+        # Model Training
+        st.sidebar.header("🤖 Model Training")
 
-        if st.sidebar.button("Train Model"):
+        if st.sidebar.button("Train Linear Regression Model"):
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Check if target variable is suitable for the selected model
-            if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
+            # Check if target variable is suitable for Linear Regression
+            if y.dtypes not in ['int64', 'float64']:
                 st.warning("Target variable must be continuous for Linear Regression.")
-            elif model_type == "Logistic Regression" and len(y.unique()) != 2:
-                st.warning("Target variable must be binary for Logistic Regression.")
             else:
                 # Using statsmodels for detailed output
                 X_train_sm = sm.add_constant(X_train)  # adding a constant
-
-                if model_type == "Linear Regression":
-                    model = sm.OLS(y_train, X_train_sm).fit()
-                else:
-                    model = sm.Logit(y_train, X_train_sm).fit()
+                model = sm.OLS(y_train, X_train_sm).fit()
 
                 # Extracting the results and formatting them
                 results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
 
                 # Display model output as a table
-                st.subheader(f"{model_type} Model Summary")
+                st.subheader("Linear Regression Model Summary")
                 st.write(results)
 
                 # Model Parameters Table
                 st.subheader("📋 Model Parameters")
-                if model_type == "Linear Regression":
-                    param_data = {
-                        "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
-                        "Multiple R-squared": [f"{model.rsquared:.4f}"],
-                        "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
-                        "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
-                        "p-value": [f"{model.f_pvalue:.4e}"]
-                    }
-                    st.table(pd.DataFrame(param_data))
+                param_data = {
+                    "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
+                    "Multiple R-squared": [f"{model.rsquared:.4f}"],
+                    "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
+                    "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
+                    "p-value": [f"{model.f_pvalue:.4e}"]
+                }
+                st.table(pd.DataFrame(param_data))
 
                 # Visualizations
                 st.subheader("📊 Model Visualizations")
@@ -149,3 +141,4 @@ if uploaded_file is not None:
                 fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
                 st.plotly_chart(fig)
                 st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
+
