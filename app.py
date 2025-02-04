@@ -44,13 +44,15 @@ if uploaded_file is not None:
     # Data Type Conversion
     st.sidebar.header("🔄 Convert Data Type")
     variable_to_convert = st.sidebar.selectbox("Select Variable to Convert", edited_df.columns)
-    desired_dtype = st.sidebar.selectbox("Select Desired Data Type", ["int", "float", "str"])
+    desired_dtype = st.sidebar.selectbox("Select Desired Data Type", ["int", "float", "str", "category"])
     if st.sidebar.button("Convert Data Type"):
         try:
             if desired_dtype == "int":
                 edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(int)
             elif desired_dtype == "float":
                 edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(float)
+            elif desired_dtype == "category":
+                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype('category')
             else:
                 edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(str)
             st.success(f"Successfully converted {variable_to_convert} to {desired_dtype}.")
