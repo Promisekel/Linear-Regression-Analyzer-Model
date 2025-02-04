@@ -68,7 +68,7 @@ if uploaded_file is not None:
     categorical_vars = st.sidebar.multiselect("Select Categorical Variables to Convert to Dummies", edited_df.select_dtypes(include=['category', 'object']).columns)
     if st.sidebar.button("Convert to Dummies"):
         try:
-            edited_df = pd.get_dummies(edited_df, columns=categorical_vars, drop_first=True)
+            edited_df = pd.get_dummies(edited_df, columns=categorical_vars, drop_first=True, dtype='float64')
             st.session_state.edited_df = edited_df  # Save to session state
             st.success(f"Successfully converted {', '.join(categorical_vars)} to dummy variables.")
         except Exception as e:
@@ -88,8 +88,9 @@ if uploaded_file is not None:
         y = pd.to_numeric(y, errors='coerce')
 
         # Drop rows with NaN values after manipulation
-        X = X.dropna()
-        y = y.loc[X.index]  # Align y with X after dropping NaNs
+        combined_data = pd.concat([X, y], axis=1).dropna()
+        X = combined_data[feature_vars]
+        y = combined_data[target_var]
 
         # Check for empty data after cleaning
         if X.empty or y.empty:
@@ -103,6 +104,10 @@ if uploaded_file is not None:
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
                 X_train = sm.add_constant(X_train)  # adding a constant
+
+                # Ensure data is numeric
+                X_train = X_train.apply(pd.to_numeric, errors='coerce')
+                y_train = pd.to_numeric(y_train, errors='coerce')
 
                 # Drop any remaining NaNs after conversion
                 valid_idx = X_train.dropna().index.intersection(y_train.dropna().index)
