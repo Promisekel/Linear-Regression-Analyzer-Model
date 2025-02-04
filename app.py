@@ -142,7 +142,20 @@ if uploaded_file is not None:
                         st.subheader("📊 Model Visualizations")
                         fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
+                        # Residuals vs Fitted
                         residuals = model.resid
-                        ax[0].scatter(model.fittedvalues, residuals, color='blue', edgecolors='black')
-                        ax[0].axhline(y=0, color='red', linestyle='--')
+                        fitted_values = model.fittedvalues
+                        ax[0].scatter(fitted_values, residuals)
+                        ax[0].axhline(0, color='red', linestyle='--')
                         ax[0].set_xlabel('Fitted Values')
+                        ax[0].set_ylabel('Residuals')
+                        ax[0].set_title('Residuals vs Fitted')
+
+                        # Q-Q Plot
+                        sm.qqplot(residuals, line='45', ax=ax[1])
+                        ax[1].set_title('Normal Q-Q Plot')
+
+                        st.pyplot(fig)
+
+                    except Exception as e:
+                        st.error(f"Model training error: {e}")
