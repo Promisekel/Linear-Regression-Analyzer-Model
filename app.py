@@ -41,6 +41,22 @@ if uploaded_file is not None:
     else:
         edited_df = df
 
+    # Data Type Conversion
+    st.sidebar.header("🔄 Convert Data Type")
+    variable_to_convert = st.sidebar.selectbox("Select Variable to Convert", edited_df.columns)
+    desired_dtype = st.sidebar.selectbox("Select Desired Data Type", ["int", "float", "str"])
+    if st.sidebar.button("Convert Data Type"):
+        try:
+            if desired_dtype == "int":
+                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(int)
+            elif desired_dtype == "float":
+                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(float)
+            else:
+                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(str)
+            st.success(f"Successfully converted {variable_to_convert} to {desired_dtype}.")
+        except Exception as e:
+            st.error(f"Error converting data type: {e}")
+
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
     target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
@@ -50,50 +66,27 @@ if uploaded_file is not None:
         X = edited_df[feature_vars]
         y = edited_df[target_var]
 
-        # Data Visualization
-        st.header("📈 Data Visualization")
-        chart_type = st.selectbox("Choose Chart Type", ["Histogram", "Boxplot", "Scatterplot", "Correlation Heatmap"])
+        # Model Selection
+        st.sidebar.header("🤖 Model Selection")
+        model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
 
-        if chart_type == "Histogram":
-            feature = st.selectbox("Select Feature", feature_vars)
-            fig = px.histogram(edited_df, x=feature, color=target_var, barmode="overlay")
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif chart_type == "Boxplot":
-            feature = st.selectbox("Select Feature", feature_vars)
-            fig = px.box(edited_df, x=target_var, y=feature, color=target_var)
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif chart_type == "Scatterplot":
-            x_var = st.selectbox("X-axis", feature_vars)
-            y_var = st.selectbox("Y-axis", feature_vars)
-            fig = px.scatter(edited_df, x=x_var, y=y_var, color=target_var)
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif chart_type == "Correlation Heatmap":
-            corr = edited_df.corr()
-            fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
-            st.plotly_chart(fig, use_container_width=True)
-
-        # Model Training
-        st.sidebar.header("🤖 Model Training")
-
-        if st.sidebar.button("Train Linear Regression Model"):
+        if st.sidebar.button("Train Model"):
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Check if target variable is suitable for Linear Regression
-            if y.dtypes not in ['int64', 'float64']:
+            # Check if target variable is suitable for the selected model
+            if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
                 st.warning("Target variable must be continuous for Linear Regression.")
             else:
                 # Using statsmodels for detailed output
                 X_train_sm = sm.add_constant(X_train)  # adding a constant
+
                 model = sm.OLS(y_train, X_train_sm).fit()
 
                 # Extracting the results and formatting them
                 results = model.summary2().tables[1]  # Extract coefficients, p-values, etc.
 
                 # Display model output as a table
-                st.subheader("Linear Regression Model Summary")
+                st.subheader(f"{model_type} Model Summary")
                 st.write(results)
 
                 # Model Parameters Table
@@ -125,11 +118,6 @@ if uploaded_file is not None:
 
                 st.pyplot(fig)
 
-                # Explanations
-                st.markdown("**Explanation:**")
-                st.write("- **Residuals vs Fitted Values:** Helps to identify non-linearity, unequal error variances, and outliers.")
-                st.write("- **Histogram of Residuals:** Shows the distribution of residuals to check for normality.")
-
                 # Q-Q plot
                 fig = sm.qqplot(residuals, line='45')
                 st.pyplot(fig)
@@ -141,4 +129,3 @@ if uploaded_file is not None:
                 fig = px.bar(x=feature_names, y=coefficients, labels={'x': 'Features', 'y': 'Coefficients'}, title='Feature Importance')
                 st.plotly_chart(fig)
                 st.write("- **Feature Importance:** Displays the influence of each feature on the target variable.")
-
