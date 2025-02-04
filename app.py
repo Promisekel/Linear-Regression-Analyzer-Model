@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
 import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
@@ -74,6 +73,27 @@ if uploaded_file is not None:
         except Exception as e:
             st.error(f"Error converting to dummies: {e}")
 
+    # Data Visualization
+    st.sidebar.header("📈 Data Visualization")
+    plot_type = st.sidebar.selectbox("Select Plot Type", ["Scatter Plot", "Bar Chart", "Histogram", "Box Plot"])
+    x_var = st.sidebar.selectbox("Select X-axis Variable", edited_df.columns)
+    y_var = st.sidebar.selectbox("Select Y-axis Variable", edited_df.columns)
+
+    if st.sidebar.button("Generate Plot"):
+        try:
+            if plot_type == "Scatter Plot":
+                fig = px.scatter(edited_df, x=x_var, y=y_var, title=f"Scatter Plot of {y_var} vs {x_var}")
+            elif plot_type == "Bar Chart":
+                fig = px.bar(edited_df, x=x_var, y=y_var, title=f"Bar Chart of {y_var} by {x_var}")
+            elif plot_type == "Histogram":
+                fig = px.histogram(edited_df, x=x_var, title=f"Histogram of {x_var}")
+            elif plot_type == "Box Plot":
+                fig = px.box(edited_df, x=x_var, y=y_var, title=f"Box Plot of {y_var} by {x_var}")
+
+            st.plotly_chart(fig)
+        except Exception as e:
+            st.error(f"Error generating plot: {e}")
+
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
     target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
@@ -128,34 +148,5 @@ if uploaded_file is not None:
 
                         st.subheader(f"{model_type} Model Summary")
                         st.write(results)
-
-                        st.subheader("📋 Model Parameters")
-                        param_data = {
-                            "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
-                            "Multiple R-squared": [f"{model.rsquared:.4f}"],
-                            "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
-                            "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
-                            "p-value": [f"{model.f_pvalue:.4e}"]
-                        }
-                        st.table(pd.DataFrame(param_data))
-
-                        st.subheader("📊 Model Visualizations")
-                        fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-
-                        # Residuals vs Fitted
-                        residuals = model.resid
-                        fitted_values = model.fittedvalues
-                        ax[0].scatter(fitted_values, residuals)
-                        ax[0].axhline(0, color='red', linestyle='--')
-                        ax[0].set_xlabel('Fitted Values')
-                        ax[0].set_ylabel('Residuals')
-                        ax[0].set_title('Residuals vs Fitted')
-
-                        # Q-Q Plot
-                        sm.qqplot(residuals, line='45', ax=ax[1])
-                        ax[1].set_title('Normal Q-Q Plot')
-
-                        st.pyplot(fig)
-
                     except Exception as e:
-                        st.error(f"Model training error: {e}")
+                        st.error(f"Error training model: {e}")
