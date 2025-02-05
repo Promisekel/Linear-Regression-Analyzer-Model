@@ -45,34 +45,20 @@ if uploaded_file is not None:
     if st.sidebar.checkbox("Show Raw Data"):
         st.write(edited_df)
 
-    # Data Type Conversion
-    st.sidebar.header("🔄 Convert Data Type")
-    variable_to_convert = st.sidebar.selectbox("Select Variable to Convert", edited_df.columns)
-    desired_dtype = st.sidebar.selectbox("Select Desired Data Type", ["int", "float", "str", "category"])
-    if st.sidebar.button("Convert Data Type"):
-        try:
-            if desired_dtype == "int":
-                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(int)
-            elif desired_dtype == "float":
-                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(float)
-            elif desired_dtype == "category":
-                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype('category')
-            else:
-                edited_df[variable_to_convert] = edited_df[variable_to_convert].astype(str)
-            st.success(f"Successfully converted {variable_to_convert} to {desired_dtype}.")
-        except Exception as e:
-            st.error(f"Error converting data type: {e}")
+    # Data Editing
+    st.subheader("🖊️ Edit Data")
+    edited_df = st.data_editor(edited_df)
+    st.session_state.edited_df = edited_df
 
-    # Convert Categorical to Dummies
-    st.sidebar.header("🗂️ Convert Categorical Variables")
-    categorical_vars = st.sidebar.multiselect("Select Categorical Variables to Convert to Dummies", edited_df.select_dtypes(include=['category', 'object']).columns)
-    if st.sidebar.button("Convert to Dummies"):
-        try:
-            edited_df = pd.get_dummies(edited_df, columns=categorical_vars, drop_first=True, dtype='float64')
-            st.session_state.edited_df = edited_df  # Save to session state
-            st.success(f"Successfully converted {', '.join(categorical_vars)} to dummy variables.")
-        except Exception as e:
-            st.error(f"Error converting to dummies: {e}")
+    # Distinct Value Distribution Visualization
+    st.subheader("📊 Distinct Value Distribution")
+    column_to_visualize = st.selectbox("Select Column to Visualize", edited_df.columns)
+    if edited_df[column_to_visualize].dtype in ['int64', 'float64']:
+        fig = px.histogram(edited_df, x=column_to_visualize, nbins=20, title=f'Distribution of {column_to_visualize}')
+    else:
+        value_counts = edited_df[column_to_visualize].value_counts()
+        fig = px.bar(value_counts, x=value_counts.index, y=value_counts.values, title=f'Distribution of {column_to_visualize}')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
@@ -91,11 +77,6 @@ if uploaded_file is not None:
         combined_data = pd.concat([X, y], axis=1).dropna()
         X = combined_data[feature_vars]
         y = combined_data[target_var]
-
-        # Explicit conversion to float64 and removal of non-numeric columns
-        X = X.astype('float64', errors='ignore')
-        y = y.astype('float64', errors='ignore')
-        X = X.select_dtypes(include=[np.number])
 
         # Check for empty data after cleaning
         if X.empty or y.empty:
@@ -128,34 +109,5 @@ if uploaded_file is not None:
 
                         st.subheader(f"{model_type} Model Summary")
                         st.write(results)
-
-                        st.subheader("📋 Model Parameters")
-                        param_data = {
-                            "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
-                            "Multiple R-squared": [f"{model.rsquared:.4f}"],
-                            "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
-                            "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
-                            "p-value": [f"{model.f_pvalue:.4e}"]
-                        }
-                        st.table(pd.DataFrame(param_data))
-
-                        st.subheader("📊 Model Visualizations")
-                        fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-
-                        # Residuals vs Fitted
-                        residuals = model.resid
-                        fitted_values = model.fittedvalues
-                        ax[0].scatter(fitted_values, residuals)
-                        ax[0].axhline(0, color='red', linestyle='--')
-                        ax[0].set_xlabel('Fitted Values')
-                        ax[0].set_ylabel('Residuals')
-                        ax[0].set_title('Residuals vs Fitted')
-
-                        # Q-Q Plot
-                        sm.qqplot(residuals, line='45', ax=ax[1])
-                        ax[1].set_title('Normal Q-Q Plot')
-
-                        st.pyplot(fig)
-
                     except Exception as e:
                         st.error(f"Model training error: {e}")
