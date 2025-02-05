@@ -9,11 +9,11 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 # Streamlit app configuration
-st.set_page_config(page_title="Diabetes Dashboard", layout="wide")
-st.title("📊 Diabetes Data Dashboard")
+st.set_page_config(page_title="LINEAR REGRESSION ANALYSER", layout="wide")
+st.title("📊 LINEAR REGRESSION ANALYSER")
 
 # File uploader for dataset
-st.sidebar.header("📤 Upload Dataset")
+st.sidebar.header("📤 Upload Your Dataset")
 uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
 # Session state to preserve dummy variables
@@ -28,7 +28,7 @@ if uploaded_file is not None:
     edited_df = st.session_state.edited_df
 
     # Handling missing data
-    st.sidebar.header("🧹 Handle Missing Data")
+    st.sidebar.header("🧹 HANDLE MISSING DATA")
     missing_option = st.sidebar.selectbox("Choose Missing Data Handling Method", ["Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
 
     if missing_option == "Drop Rows":
@@ -41,13 +41,13 @@ if uploaded_file is not None:
         edited_df = edited_df.apply(lambda col: col.fillna(col.mode()[0]) if col.isnull().any() else col)
 
     # Sidebar: Data Manipulation
-    st.sidebar.header("🔍 Data Manipulation")
+    st.sidebar.header("🔍 DATA MANIPULATION")
     if st.sidebar.checkbox("Show Raw Data"):
         edited_df = st.data_editor(edited_df, num_rows="dynamic")  # Editable data frame
         st.session_state.edited_df = edited_df  # Save changes
 
     # Data Type Conversion
-    st.sidebar.header("🔄 Convert Data Type")
+    st.sidebar.header("🔄 CONVERT DATA TYPE")
     variable_to_convert = st.sidebar.selectbox("Select Variable to Convert", edited_df.columns)
     desired_dtype = st.sidebar.selectbox("Select Desired Data Type", ["int", "float", "str", "category"])
     if st.sidebar.button("Convert Data Type"):
@@ -65,7 +65,7 @@ if uploaded_file is not None:
             st.error(f"Error converting data type: {e}")
 
     # Convert Categorical to Dummies
-    st.sidebar.header("🗂️ Convert Categorical Variables")
+    st.sidebar.header("🗂️ CONVERT CATEGORICAL VARIABLE")
     categorical_vars = st.sidebar.multiselect("Select Categorical Variables to Convert to Dummies", edited_df.select_dtypes(include=['category', 'object']).columns)
     if st.sidebar.button("Convert to Dummies"):
         try:
@@ -76,23 +76,23 @@ if uploaded_file is not None:
             st.error(f"Error converting to dummies: {e}")
 
     # Python Coding Environment
-    st.sidebar.header("💻 Python Coding Environment")
-    code_input = st.sidebar.text_area("Write Python Code to Manipulate Data", height=200)
-    if st.sidebar.button("Run Code"):
-        try:
+    #st.sidebar.header("💻 Python Coding Environment")
+    #code_input = st.sidebar.text_area("Write Python Code to Manipulate Data", height=200)
+    #if st.sidebar.button("Run Code"):
+    #    try:
             # Safe execution of user code
-            local_vars = {'edited_df': edited_df, 'pd': pd, 'np': np}
-            exec(code_input, {}, local_vars)
-            edited_df = local_vars['edited_df']
-            st.session_state.edited_df = edited_df
-            st.success("Code executed successfully.")
-        except Exception as e:
-            st.error(f"Error executing code: {e}")
+     #       local_vars = {'edited_df': edited_df, 'pd': pd, 'np': np}
+    #        exec(code_input, {}, local_vars)
+    #        edited_df = local_vars['edited_df']
+    #       st.session_state.edited_df = edited_df
+    #        st.success("Code executed successfully.")
+    #    except Exception as e:
+    #        st.error(f"Error executing code: {e}")
 
     # Variable Selection
-    st.sidebar.header("📊 Variable Selection")
-    target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
-    feature_vars = st.sidebar.multiselect("Select Feature Variables", edited_df.columns.difference([target_var]))
+    st.sidebar.header("📊 SELECT VARAIBLE FOR REGRESSION ANALYSIS")
+    target_var = st.sidebar.selectbox("Select Outcome Variable", edited_df.columns)
+    feature_vars = st.sidebar.multiselect("Select Explanatory Variables", edited_df.columns.difference([target_var]))
 
     if feature_vars and target_var:
         X = edited_df[feature_vars]
@@ -117,10 +117,10 @@ if uploaded_file is not None:
             st.error("The dataset is empty after cleaning. Please adjust the data or handling options.")
         else:
             # Model Selection
-            st.sidebar.header("🤖 Model Selection")
+            st.sidebar.header("🤖 MODEL")
             model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
 
-            if st.sidebar.button("Train Model"):
+            if st.sidebar.button("Run Model"):
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
                 X_train = sm.add_constant(X_train)  # adding a constant
