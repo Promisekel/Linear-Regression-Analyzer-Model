@@ -27,12 +27,6 @@ if uploaded_file is not None:
         st.session_state.edited_df = df
     edited_df = st.session_state.edited_df
 
-    # Data Editing Functionality
-    st.sidebar.header("✏️ Edit Data")
-    st.subheader("Editable Data Table")
-    edited_df = st.data_editor(edited_df, num_rows="dynamic")
-    st.session_state.edited_df = edited_df
-
     # Handling missing data
     st.sidebar.header("🧹 Handle Missing Data")
     missing_option = st.sidebar.selectbox("Choose Missing Data Handling Method", ["Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
@@ -79,6 +73,20 @@ if uploaded_file is not None:
             st.success(f"Successfully converted {', '.join(categorical_vars)} to dummy variables.")
         except Exception as e:
             st.error(f"Error converting to dummies: {e}")
+
+    # Python Coding Environment
+    st.sidebar.header("💻 Python Coding Environment")
+    code_input = st.sidebar.text_area("Write Python Code to Manipulate Data", height=200)
+    if st.sidebar.button("Run Code"):
+        try:
+            # Safe execution of user code
+            local_vars = {'edited_df': edited_df, 'pd': pd, 'np': np}
+            exec(code_input, {}, local_vars)
+            edited_df = local_vars['edited_df']
+            st.session_state.edited_df = edited_df
+            st.success("Code executed successfully.")
+        except Exception as e:
+            st.error(f"Error executing code: {e}")
 
     # Variable Selection
     st.sidebar.header("📊 Variable Selection")
@@ -153,7 +161,7 @@ if uploaded_file is not None:
                         fitted_values = model.fittedvalues
                         ax[0].scatter(fitted_values, residuals)
                         ax[0].axhline(0, color='red', linestyle='--')
-                        ax[0].set_xlabel('Fitted Values')
+                        ax[0].set_xlabel('Fitted values')
                         ax[0].set_ylabel('Residuals')
                         ax[0].set_title('Residuals vs Fitted')
 
