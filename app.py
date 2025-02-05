@@ -27,6 +27,12 @@ if uploaded_file is not None:
         st.session_state.edited_df = df
     edited_df = st.session_state.edited_df
 
+    # Data Editing Functionality
+    st.sidebar.header("✏️ Edit Data")
+    st.subheader("Editable Data Table")
+    edited_df = st.data_editor(edited_df, num_rows="dynamic")
+    st.session_state.edited_df = edited_df
+
     # Handling missing data
     st.sidebar.header("🧹 Handle Missing Data")
     missing_option = st.sidebar.selectbox("Choose Missing Data Handling Method", ["Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"])
@@ -152,10 +158,10 @@ if uploaded_file is not None:
                         ax[0].set_title('Residuals vs Fitted')
 
                         # Q-Q Plot
-                        sm.qqplot(residuals, line='45', ax=ax[1])
-                        ax[1].set_title('Normal Q-Q Plot')
+                        sm.qqplot(residuals, line='s', ax=ax[1])
+                        ax[1].set_title('Normal Q-Q')
 
                         st.pyplot(fig)
 
                     except Exception as e:
-                        st.error(f"Model training error: {e}")
+                        st.error(f"Error in model training: {e}")
