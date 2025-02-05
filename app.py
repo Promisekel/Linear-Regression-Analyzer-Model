@@ -64,7 +64,7 @@ if uploaded_file is not None:
             st.error(f"Error converting data type: {e}")
 
     # Convert Categorical to Dummies
-    st.sidebar.header("🗂️ Convert Categorical Variables")
+    st.sidebar.header("💒 Convert Categorical Variables")
     categorical_vars = st.sidebar.multiselect("Select Categorical Variables to Convert to Dummies", edited_df.select_dtypes(include=['category', 'object']).columns)
     if st.sidebar.button("Convert to Dummies"):
         try:
@@ -79,7 +79,6 @@ if uploaded_file is not None:
     code_input = st.sidebar.text_area("Write Python Code to Manipulate Data", height=200)
     if st.sidebar.button("Run Code"):
         try:
-            # Safe execution of user code
             local_vars = {'edited_df': edited_df, 'pd': pd, 'np': np}
             exec(code_input, {}, local_vars)
             edited_df = local_vars['edited_df']
@@ -97,38 +96,31 @@ if uploaded_file is not None:
         X = edited_df[feature_vars]
         y = edited_df[target_var]
 
-        # Convert all feature variables to numeric
         X = X.apply(pd.to_numeric, errors='coerce')
         y = pd.to_numeric(y, errors='coerce')
 
-        # Drop rows with NaN values after manipulation
         combined_data = pd.concat([X, y], axis=1).dropna()
         X = combined_data[feature_vars]
         y = combined_data[target_var]
 
-        # Explicit conversion to float64 and removal of non-numeric columns
         X = X.astype('float64', errors='ignore')
         y = y.astype('float64', errors='ignore')
         X = X.select_dtypes(include=[np.number])
 
-        # Check for empty data after cleaning
         if X.empty or y.empty:
             st.error("The dataset is empty after cleaning. Please adjust the data or handling options.")
         else:
-            # Model Selection
             st.sidebar.header("🤖 Model Selection")
             model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
 
             if st.sidebar.button("Train Model"):
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-                X_train = sm.add_constant(X_train)  # adding a constant
+                X_train = sm.add_constant(X_train)
 
-                # Ensure data is numeric
                 X_train = X_train.apply(pd.to_numeric, errors='coerce')
                 y_train = pd.to_numeric(y_train, errors='coerce')
 
-                # Drop any remaining NaNs after conversion
                 valid_idx = X_train.dropna().index.intersection(y_train.dropna().index)
                 X_train = X_train.loc[valid_idx]
                 y_train = y_train.loc[valid_idx]
@@ -156,7 +148,6 @@ if uploaded_file is not None:
                         st.subheader("📊 Model Visualizations")
                         fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
-                        # Residuals vs Fitted
                         residuals = model.resid
                         fitted_values = model.fittedvalues
                         ax[0].scatter(fitted_values, residuals)
@@ -165,7 +156,6 @@ if uploaded_file is not None:
                         ax[0].set_ylabel('Residuals')
                         ax[0].set_title('Residuals vs Fitted')
 
-                        # Q-Q Plot
                         sm.qqplot(residuals, line='s', ax=ax[1])
                         ax[1].set_title('Normal Q-Q')
 
