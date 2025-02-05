@@ -98,5 +98,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 💬 Contact
 
-For questions, suggestions, or contributions, feel free to reach out at [your-email@example.com].
+For questions, suggestions, or contributions, feel free to reach out at [p.bansah@kccr.de].
 
