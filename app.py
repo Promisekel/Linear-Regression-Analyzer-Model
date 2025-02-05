@@ -1,6 +1,7 @@
-\import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
@@ -73,24 +74,88 @@ if uploaded_file is not None:
         except Exception as e:
             st.error(f"Error converting to dummies: {e}")
 
-    # Data Visualization
-    st.sidebar.header("📈 Data Visualization")
-    plot_type = st.sidebar.selectbox("Select Plot Type", ["Scatter Plot", "Bar Chart", "Histogram", "Box Plot"])
-    x_var = st.sidebar.selectbox("Select X-axis Variable", edited_df.columns)
-    y_var = st.sidebar.selectbox("Select Y-axis Variable", edited_df.columns)
+    # Variable Selection
+    st.sidebar.header("📊 Variable Selection")
+    target_var = st.sidebar.selectbox("Select Target Variable", edited_df.columns)
+    feature_vars = st.sidebar.multiselect("Select Feature Variables", edited_df.columns.difference([target_var]))
 
-    if st.sidebar.button("Generate Plot"):
-        try:
-            color_palette = px.colors.qualitative.Alphabet
-            if plot_type == "Scatter Plot":
-                fig = px.scatter(edited_df, x=x_var, y=y_var, color_discrete_sequence=color_palette, title=f"Scatter Plot of {y_var} vs {x_var}")
-            elif plot_type == "Bar Chart":
-                fig = px.bar(edited_df, x=x_var, y=y_var, color_discrete_sequence=color_palette, title=f"Bar Chart of {y_var} by {x_var}")
-            elif plot_type == "Histogram":
-                fig = px.histogram(edited_df, x=x_var, color_discrete_sequence=color_palette, title=f"Histogram of {x_var}")
-            elif plot_type == "Box Plot":
-                fig = px.box(edited_df, x=x_var, y=y_var, color_discrete_sequence=color_palette, title=f"Box Plot of {y_var} by {x_var}")
+    if feature_vars and target_var:
+        X = edited_df[feature_vars]
+        y = edited_df[target_var]
 
-            st.plotly_chart(fig)
-        except Exception as e:
-            st.error(f"Error generating plot: {e}")
+        # Convert all feature variables to numeric
+        X = X.apply(pd.to_numeric, errors='coerce')
+        y = pd.to_numeric(y, errors='coerce')
+
+        # Drop rows with NaN values after manipulation
+        combined_data = pd.concat([X, y], axis=1).dropna()
+        X = combined_data[feature_vars]
+        y = combined_data[target_var]
+
+        # Explicit conversion to float64 and removal of non-numeric columns
+        X = X.astype('float64', errors='ignore')
+        y = y.astype('float64', errors='ignore')
+        X = X.select_dtypes(include=[np.number])
+
+        # Check for empty data after cleaning
+        if X.empty or y.empty:
+            st.error("The dataset is empty after cleaning. Please adjust the data or handling options.")
+        else:
+            # Model Selection
+            st.sidebar.header("🤖 Model Selection")
+            model_type = st.sidebar.radio("Choose Model", ["Linear Regression"])
+
+            if st.sidebar.button("Train Model"):
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+                X_train = sm.add_constant(X_train)  # adding a constant
+
+                # Ensure data is numeric
+                X_train = X_train.apply(pd.to_numeric, errors='coerce')
+                y_train = pd.to_numeric(y_train, errors='coerce')
+
+                # Drop any remaining NaNs after conversion
+                valid_idx = X_train.dropna().index.intersection(y_train.dropna().index)
+                X_train = X_train.loc[valid_idx]
+                y_train = y_train.loc[valid_idx]
+
+                if model_type == "Linear Regression" and y.dtypes not in ['int64', 'float64']:
+                    st.warning("Target variable must be continuous for Linear Regression.")
+                else:
+                    try:
+                        model = sm.OLS(y_train, X_train, missing='drop').fit()
+                        results = model.summary2().tables[1]
+
+                        st.subheader(f"{model_type} Model Summary")
+                        st.write(results)
+
+                        st.subheader("📋 Model Parameters")
+                        param_data = {
+                            "Residual Standard Error": [f"{model.bse[0]:.2f} on {model.df_resid} degrees of freedom"],
+                            "Multiple R-squared": [f"{model.rsquared:.4f}"],
+                            "Adjusted R-squared": [f"{model.rsquared_adj:.4f}"],
+                            "F-statistic": [f"{model.fvalue:.2f} on {model.df_model} and {model.df_resid} DF"],
+                            "p-value": [f"{model.f_pvalue:.4e}"]
+                        }
+                        st.table(pd.DataFrame(param_data))
+
+                        st.subheader("📊 Model Visualizations")
+                        fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+
+                        # Residuals vs Fitted
+                        residuals = model.resid
+                        fitted_values = model.fittedvalues
+                        ax[0].scatter(fitted_values, residuals)
+                        ax[0].axhline(0, color='red', linestyle='--')
+                        ax[0].set_xlabel('Fitted Values')
+                        ax[0].set_ylabel('Residuals')
+                        ax[0].set_title('Residuals vs Fitted')
+
+                        # Q-Q Plot
+                        sm.qqplot(residuals, line='45', ax=ax[1])
+                        ax[1].set_title('Normal Q-Q Plot')
+
+                        st.pyplot(fig)
+
+                    except Exception as e:
+                        st.error(f"Model training error: {e}")
