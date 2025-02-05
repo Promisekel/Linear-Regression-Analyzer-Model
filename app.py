@@ -9,8 +9,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 # Streamlit app configuration
-st.set_page_config(page_title="LINEAR REGRESSION ANALYSER", layout="wide")
-st.title("📊 LINEAR REGRESSION ANALYSER")
+st.set_page_config(page_title="LINEAR REGRESSION ANALYzER MODEL", layout="wide")
+st.title("📊 LINEAR REGRESSION ANALYZER MODEL")
 
 # File uploader for dataset
 st.sidebar.header("📤 Upload Your Dataset")
@@ -174,3 +174,6 @@ if uploaded_file is not None:
 
                     except Exception as e:
                         st.error(f"Error in model training: {e}")
+    # Footer
+st.sidebar.markdown("---")
+st.sidebar.write("Author: [Promise Bansah](https://github.com/Promisekel)")
